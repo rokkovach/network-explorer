@@ -73,6 +73,61 @@ function showToast(msg) {
     });
   }
 
+  // ===== SETUP TAB =====
+  async function setupTab(tabId, notify) {
+    if (!tabId) { setStatus('paused', 'No tab'); RequestList.render(); return; }
+    window.__myTabId = tabId;
+
+    // Reset request state
+    window.__requests = [];
+    window.__requestMap = {};
+    window.__nextId = 1;
+    RequestList.selectedId = null;
+
+    // Clear filter rules (session-only per tab)
+    Filters._rules = [];
+    Filters._renderRules();
+
+    // Check if capture is enabled globally
+    if (!Settings.get('enabled')) {
+      setStatus('paused', 'Disabled');
+      if (notify) showToast('Capture is disabled globally — enable in Settings');
+    } else {
+      try {
+        var results = await chrome.scripting.executeScript({
+          target: { tabId: tabId },
+          world: 'MAIN',
+          func: function() { return !!(window.__nePatched); }
+        });
+        if (results && results[0] && results[0].result) {
+          setStatus('active', 'Listening');
+        } else {
+          setStatus('paused', 'Not injected');
+        }
+      } catch(e) {
+        setStatus('paused', 'Cannot access');
+      }
+    }
+
+    // Check site-specific rules
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab && tab.url) {
+        const domain = new URL(tab.url).hostname.replace(/^www\./, '');
+        const siteRules = Settings.get('siteRules') || {};
+        if (siteRules[domain] === 'block') {
+          setStatus('paused', 'Blocked for ' + domain);
+          if (notify) showToast('Capture blocked for this domain — change in Settings');
+        } else if (siteRules[domain] === 'allow') {
+          setStatus('active', 'Listening (allowed)');
+        }
+      }
+    } catch(e) {}
+
+    loadStoredRequests(tabId);
+    RequestList.render();
+  }
+
   // ===== LISTEN FOR NEW REQUESTS FROM BACKGROUND =====
   chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse) {
     if (msg.type !== 'FORWARD') return;
@@ -295,64 +350,36 @@ function showToast(msg) {
   });
 
   // ===== LISTEN FOR TAB CHANGES =====
-  chrome.tabs.onActivated.addListener(function(activeInfo) {
-    var oldTabId = window.__myTabId;
-    var newTabId = activeInfo.tabId;
-    if (newTabId === oldTabId) return;
+  try {
+    chrome.tabs.onActivated.addListener(function(activeInfo) {
+      if (activeInfo.tabId === window.__myTabId) return;
+      setupTab(activeInfo.tabId);
+    });
 
-    // Switch to new tab
-    window.__myTabId = newTabId;
+    // Clear requests when the current tab navigates to a new page
+    chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
+      if (tabId !== window.__myTabId) return;
+      if (changeInfo.status !== 'loading') return;
+      window.__requests = [];
+      window.__requestMap = {};
+      window.__nextId = 1;
+      RequestList.selectedId = null;
+      Filters._rules = [];
+      Filters._renderRules();
+      RequestList.render();
+      setStatus('active', 'Listening');
+    });
 
-    // Clear filter rules (per-session only, not persisted)
-    Filters._rules = [];
-    Filters._renderRules();
-
-    // Reset request data and load for new tab
-    window.__requests = [];
-    window.__requestMap = {};
-    window.__nextId = 1;
-    RequestList.selectedId = null;
-
-    loadStoredRequests(newTabId);
-    RequestList.render();
-    setStatus('active', 'Listening');
-
-    // Re-check injection status for new tab
-    if (Settings.get('enabled')) {
-      try {
-        chrome.scripting.executeScript({
-          target: { tabId: newTabId },
-          world: 'MAIN',
-          func: function() { return !!(window.__nePatched); }
-        }).then(function(results) {
-          if (results && results[0] && results[0].result) {
-            setStatus('active', 'Listening');
-          } else {
-            setStatus('paused', 'Not injected');
-          }
-        }).catch(function() {
-          setStatus('paused', 'Cannot access');
-        });
-      } catch(e) {
-        setStatus('paused', 'Cannot access');
-      }
-    }
-  });
-
-  // Clear requests when the current tab navigates to a new page
-  chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
-    if (tabId !== window.__myTabId) return;
-    if (changeInfo.status !== 'loading') return;
-
-    window.__requests = [];
-    window.__requestMap = {};
-    window.__nextId = 1;
-    RequestList.selectedId = null;
-    Filters._rules = [];
-    Filters._renderRules();
-    RequestList.render();
-    setStatus('active', 'Listening');
-  });
+    // Handle tab switches between windows
+    chrome.windows.onFocusChanged.addListener(function(windowId) {
+      if (windowId === chrome.windows.WINDOW_ID_NONE) return;
+      chrome.tabs.query({ active: true, windowId: windowId }, function(tabs) {
+        if (chrome.runtime.lastError || !tabs || !tabs.length) return;
+        if (tabs[0].id === window.__myTabId) return;
+        setupTab(tabs[0].id);
+      });
+    });
+  } catch(e) {}
 
   // ===== LISTEN FOR SYSTEM THEME CHANGES =====
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
@@ -362,45 +389,7 @@ function showToast(msg) {
   // ===== INIT =====
   async function init() {
     var tabId = await getTabId();
-    if (!tabId) { setStatus('paused', 'No tab'); RequestList.render(); return; }
-    window.__myTabId = tabId;
-
-    if (!Settings.get('enabled')) {
-      setStatus('paused', 'Disabled');
-      showToast('Capture is disabled globally — enable in Settings');
-    } else {
-      try {
-        var results = await chrome.scripting.executeScript({
-          target: { tabId: tabId },
-          world: 'MAIN',
-          func: function() { return !!(window.__nePatched); }
-        });
-        if (results && results[0] && results[0].result) {
-          setStatus('active', 'Listening');
-        } else {
-          setStatus('paused', 'Not injected');
-        }
-      } catch(e) {
-        setStatus('paused', 'Cannot access');
-      }
-    }
-
-    try {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tab && tab.url) {
-        const domain = new URL(tab.url).hostname.replace(/^www\./, '');
-        const siteRules = Settings.get('siteRules') || {};
-        if (siteRules[domain] === 'block') {
-          setStatus('paused', 'Blocked for ' + domain);
-          showToast('Capture blocked for this domain — change in Settings');
-        } else if (siteRules[domain] === 'allow') {
-          setStatus('active', 'Listening (allowed)');
-        }
-      }
-    } catch(e) {}
-
-    loadStoredRequests(tabId);
-    RequestList.render();
+    setupTab(tabId, true);
   }
 
   init();
