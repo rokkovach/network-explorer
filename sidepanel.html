@@ -254,6 +254,15 @@
     #filter-bar {
       display: flex;
       gap: 4px;
+      align-items: center;
+    }
+
+    .filter-label {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
 
     select {
@@ -874,11 +883,6 @@
             <path d="M11.5 8.7l-.6-.3a4.5 4.5 0 000-2.8l.6-.3a.3.3 0 00.1-.5l-1.3-1.3a.3.3 0 00-.5.1l-.3.6a4.5 4.5 0 00-2.8 0l-.3-.6a.3.3 0 00-.5-.1L4.2 4.8a.3.3 0 00.1.5l.6.3a4.5 4.5 0 000 2.8l-.6.3a.3.3 0 00-.1.5l1.3 1.3c.2.1.4.1.5-.1l.3-.6a4.5 4.5 0 002.8 0l.3.6c.1.2.3.2.5.1l1.3-1.3a.3.3 0 00-.1-.5z" stroke="currentColor" stroke-width="1.1"/>
           </svg>
         </button>
-        <button class="icon-btn" id="btn-popout" title="Open in separate window">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M8 1h5v5M13 1L6 8M2 5v7h7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
         <button class="icon-btn" id="btn-refresh" title="Refresh capture">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M1.5 7a5.5 5.5 0 019.26-4M12.5 7a5.5 5.5 0 01-9.26 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -908,6 +912,7 @@
       </div>
       <div class="toolbar-right">
         <div id="filter-bar">
+          <label class="filter-label">Method</label>
           <select id="filter-method" title="Method">
             <option value="all">ALL</option>
             <option value="GET">GET</option>
@@ -916,6 +921,7 @@
             <option value="PATCH">PATCH</option>
             <option value="DELETE">DEL</option>
           </select>
+          <label class="filter-label">Status</label>
           <select id="filter-status" title="Status">
             <option value="all">All</option>
             <option value="2xx">2xx</option>
@@ -923,6 +929,7 @@
             <option value="4xx">4xx</option>
             <option value="5xx">5xx</option>
           </select>
+          <label class="filter-label">Type</label>
           <select id="filter-type" title="Type">
             <option value="all">All</option>
             <option value="fetch">Fetch</option>
@@ -946,7 +953,7 @@
           <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
             <path d="M1 3h12M1 7h8M1 11h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
-          Advanced Filters
+          Define Filters
           <span id="active-filter-count" style="color:var(--accent);font-weight:700;display:none;">(0)</span>
         </span>
         <span class="chevron" id="adv-chevron">&#9654;</span>
