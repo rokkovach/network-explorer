@@ -11,6 +11,8 @@ Click the extension icon to open a side panel showing all fetch/XHR requests on 
 - **JSON viewer** — syntax highlighted with collapsible nodes
 - **Simple filtering** — by method, status code, type, and URL search
 - **Advanced regex filters** — AND/OR logic chains, pair with HTTP methods, filter by URL, User-Agent, or any custom header; import/export as JSON
+- **Right-click to filter** — right-click any request row to quickly include/exclude by URL, domain, or pattern
+- **Saved filter presets** — save, load, and delete filter presets with include/exclude rules
 - **Export** — download captured requests as JSON (respects current filters)
 - **Copy as cURL** — one-click cURL generation with masked header option
 - **Side panel** — lives in its own panel per tab, can be popped out to a separate window
@@ -78,6 +80,16 @@ lib/json-viewer.js          → JSON pretty-print with collapsible nodes
 - Added profile import/export (full profile, settings only, filters only)
 - Added filter rules import/export as JSON
 - All settings persisted via chrome.storage.local
+
+## v2.1 Changes
+
+- Added "Include requests like this" / "Exclude requests like this" right-click context menu options (filters by pathname + method)
+- Added exclude rules with dedicated EXCLUDE toggle badge per filter rule (red-tinted when active)
+- Exclude rules now properly reject matching requests regardless of AND/OR logic on include rules
+- Increased custom filters panel max-height from 220px to 300px for better scrolling with many rules
+- Converted main layout to flex-based height (no more calc height) for better responsiveness
+- Added min-width styling to filter preset select for better readability
+- Updated delete preset button with proper danger styling (red border + hover state)
 
 ## License
 

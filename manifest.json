@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Network Explorer",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Inspect network requests, view JSON responses, filter with regex, export cURL masked, and manage per-site capture rules.",
   "permissions": [
     "activeTab",

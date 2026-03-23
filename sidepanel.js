@@ -191,6 +191,32 @@ function showToast(msg) {
   document.getElementById('btn-delete-preset').addEventListener('click', function() {
     Filters._deletePreset();
   });
+  // ===== CONTEXT MENU =====
+  var contextMenu = document.getElementById('context-menu');
+  document.addEventListener('click', function(e) {
+    if (!contextMenu.contains(e.target)) {
+      contextMenu.style.display = 'none';
+      return;
+    }
+    var item = e.target.closest('.ctx-item');
+    if (!item) return;
+    var action = item.dataset.action;
+    contextMenu.style.display = 'none';
+    var request = RequestList._contextRequest;
+    if (!request) return;
+
+    if (action === 'copy-url') {
+      navigator.clipboard.writeText(request.url).then(function() {
+        showToast('URL copied');
+      });
+      return;
+    }
+
+    if (Filters.addFromContext) {
+      Filters.addFromContext(action, request);
+    }
+  });
+
   // ===== KEYBOARD SHORTCUTS =====
   document.addEventListener('keydown', function(e) {
     // Don't capture shortcuts when typing in inputs
