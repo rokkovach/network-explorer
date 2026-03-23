@@ -43,10 +43,38 @@ function showToast(msg) {
     }
   }
 
+  // ===== POP OUT TO SEPARATE WINDOW =====
+  var popoutBtn = document.getElementById('btn-popout');
+  var urlParams = new URLSearchParams(window.location.search);
+  var isStandalone = !!urlParams.get('tabId');
+
+  // Hide pop-out button if already in standalone window
+  if (isStandalone && popoutBtn) {
+    popoutBtn.style.display = 'none';
+  }
+
+  if (popoutBtn) {
+    popoutBtn.addEventListener('click', async function() {
+      var tabId = window.__myTabId;
+      if (!tabId) return;
+      chrome.windows.create({
+        url: chrome.runtime.getURL('window.html?tabId=' + tabId),
+        type: 'popup',
+        width: 900,
+        height: 680,
+        focused: true,
+      });
+    });
+  }
+
   // ===== GET CURRENT TAB =====
   async function getTabId() {
+    // If opened as standalone window, tabId comes from URL params
+    if (isStandalone) {
+      var tid = parseInt(urlParams.get('tabId'));
+      return isNaN(tid) ? null : tid;
+    }
     try {
-      // Side panel context - query the tab that opened the side panel
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       return tab ? tab.id : null;
     } catch(e) { return null; }
