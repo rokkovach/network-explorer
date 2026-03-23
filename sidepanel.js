@@ -77,7 +77,7 @@ function showToast(msg) {
   chrome.runtime.onMessage.addListener(function(msg, sender, sendResponse) {
     if (msg.type !== 'FORWARD') return;
     if (msg.tabId !== window.__myTabId) return;
-    if (window.__capturePaused) return; // Don't display when paused
+    if (window.__capturePaused) return;
 
     var r = msg.request;
     if (window.__requestMap[r.id]) return;
@@ -93,18 +93,20 @@ function showToast(msg) {
   });
 
   // ===== TOGGLE CAPTURE (pause/resume display) =====
-  toggleBtn.addEventListener('click', function() {
-    window.__capturePaused = !window.__capturePaused;
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', function() {
+      window.__capturePaused = !window.__capturePaused;
+      updateToggleIcon();
+      if (window.__capturePaused) {
+        setStatus('paused', 'Paused');
+        showToast('Capture display paused');
+      } else {
+        setStatus('active', window.__requests.length + ' captured');
+        showToast('Capture resumed');
+      }
+    });
     updateToggleIcon();
-    if (window.__capturePaused) {
-      setStatus('paused', 'Paused');
-      showToast('Capture display paused');
-    } else {
-      setStatus('active', window.__requests.length + ' captured');
-      showToast('Capture resumed');
-    }
-  });
-  updateToggleIcon();
+  }
 
   // ===== SETTINGS =====
   var settingsView = document.getElementById('settings-view');
@@ -151,9 +153,23 @@ function showToast(msg) {
     showToast('Cleared');
   });
 
+  // ===== CLEAR FILTERS =====
+  var clearFiltersBtn = document.getElementById('btn-clear-filters');
+  if (clearFiltersBtn) {
+    clearFiltersBtn.addEventListener('click', function() {
+      document.getElementById('filter-method').value = 'all';
+      document.getElementById('filter-status').value = 'all';
+      document.getElementById('filter-type').value = 'all';
+      document.getElementById('search-input').value = '';
+      Filters.clearRules();
+      RequestList.render();
+      showToast('Filters cleared');
+    });
+  }
+
   // ===== EXPORT (filtered) =====
   document.getElementById('btn-export').addEventListener('click', function() {
-    Storage.exportJSON(true); // true = respect current filters
+    Storage.exportJSON(true);
     showToast('Exported (filtered)');
   });
 
@@ -167,15 +183,18 @@ function showToast(msg) {
     searchTimer = setTimeout(function() { RequestList.render(); }, 100);
   });
 
-  // ===== ADVANCED FILTERS TOGGLE =====
-  var advFiltersOpen = false;
-  document.getElementById('advanced-filters-header').addEventListener('click', function() {
-    advFiltersOpen = !advFiltersOpen;
-    document.getElementById('advanced-filters-body').classList.toggle('open', advFiltersOpen);
-    document.getElementById('adv-chevron').classList.toggle('open', advFiltersOpen);
-  });
+  // ===== CUSTOM FILTERS TOGGLE =====
+  var customFiltersOpen = false;
+  var customFiltersHeader = document.getElementById('custom-filters-header');
+  if (customFiltersHeader) {
+    customFiltersHeader.addEventListener('click', function() {
+      customFiltersOpen = !customFiltersOpen;
+      document.getElementById('custom-filters-body').classList.toggle('open', customFiltersOpen);
+      document.getElementById('adv-chevron').classList.toggle('open', customFiltersOpen);
+    });
+  }
 
-  // ===== ADVANCED FILTERS ACTIONS =====
+  // ===== CUSTOM FILTERS ACTIONS =====
   document.getElementById('btn-add-filter-rule').addEventListener('click', function() {
     Filters.addRule();
   });
@@ -191,35 +210,45 @@ function showToast(msg) {
   document.getElementById('btn-delete-preset').addEventListener('click', function() {
     Filters._deletePreset();
   });
+
+  // ===== CLOSE DETAIL PANEL =====
+  var closeDetailBtn = document.getElementById('btn-close-detail');
+  if (closeDetailBtn) {
+    closeDetailBtn.addEventListener('click', function() {
+      RequestList.deselect();
+    });
+  }
+
   // ===== CONTEXT MENU =====
   var contextMenu = document.getElementById('context-menu');
-  document.addEventListener('click', function(e) {
-    if (!contextMenu.contains(e.target)) {
+  if (contextMenu) {
+    document.addEventListener('click', function(e) {
+      if (!contextMenu.contains(e.target)) {
+        contextMenu.style.display = 'none';
+        return;
+      }
+      var item = e.target.closest('.ctx-item');
+      if (!item) return;
+      var action = item.dataset.action;
       contextMenu.style.display = 'none';
-      return;
-    }
-    var item = e.target.closest('.ctx-item');
-    if (!item) return;
-    var action = item.dataset.action;
-    contextMenu.style.display = 'none';
-    var request = RequestList._contextRequest;
-    if (!request) return;
+      var request = RequestList._contextRequest;
+      if (!request) return;
 
-    if (action === 'copy-url') {
-      navigator.clipboard.writeText(request.url).then(function() {
-        showToast('URL copied');
-      });
-      return;
-    }
+      if (action === 'copy-url') {
+        navigator.clipboard.writeText(request.url).then(function() {
+          showToast('URL copied');
+        });
+        return;
+      }
 
-    if (Filters.addFromContext) {
-      Filters.addFromContext(action, request);
-    }
-  });
+      if (Filters.addFromContext) {
+        Filters.addFromContext(action, request);
+      }
+    });
+  }
 
   // ===== KEYBOARD SHORTCUTS =====
   document.addEventListener('keydown', function(e) {
-    // Don't capture shortcuts when typing in inputs
     if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'SELECT') {
       if (e.key === 'Escape') document.activeElement.blur();
       return;
@@ -276,12 +305,10 @@ function showToast(msg) {
     if (!tabId) { setStatus('paused', 'No tab'); RequestList.render(); return; }
     window.__myTabId = tabId;
 
-    // Check if globally enabled
     if (!Settings.get('enabled')) {
       setStatus('paused', 'Disabled');
       showToast('Capture is disabled globally — enable in Settings');
     } else {
-      // Check if capture script is active on this page
       try {
         var results = await chrome.scripting.executeScript({
           target: { tabId: tabId },
@@ -298,7 +325,6 @@ function showToast(msg) {
       }
     }
 
-    // Check site rules
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (tab && tab.url) {
