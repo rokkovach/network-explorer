@@ -300,26 +300,20 @@ function showToast(msg) {
     var newTabId = activeInfo.tabId;
     if (newTabId === oldTabId) return;
 
-    // Save current tab's rules to per-tab store
-    window.__perTabRules = window.__perTabRules || {};
-    if (oldTabId) {
-      window.__perTabRules[oldTabId] = Filters._rules.slice();
-    }
-
     // Switch to new tab
     window.__myTabId = newTabId;
 
-    // Restore rules for the new tab
-    Filters._rules = (window.__perTabRules[newTabId] || []).slice();
+    // Clear filter rules (per-session only, not persisted)
+    Filters._rules = [];
     Filters._renderRules();
 
     // Reset request data and load for new tab
     window.__requests = [];
     window.__requestMap = {};
     window.__nextId = 1;
+    RequestList.selectedId = null;
 
     loadStoredRequests(newTabId);
-    RequestList.deselect();
     RequestList.render();
     setStatus('active', 'Listening');
 
@@ -345,10 +339,19 @@ function showToast(msg) {
     }
   });
 
-  chrome.tabs.onRemoved.addListener(function(tabId) {
-    if (window.__perTabRules) {
-      delete window.__perTabRules[tabId];
-    }
+  // Clear requests when the current tab navigates to a new page
+  chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
+    if (tabId !== window.__myTabId) return;
+    if (changeInfo.status !== 'loading') return;
+
+    window.__requests = [];
+    window.__requestMap = {};
+    window.__nextId = 1;
+    RequestList.selectedId = null;
+    Filters._rules = [];
+    Filters._renderRules();
+    RequestList.render();
+    setStatus('active', 'Listening');
   });
 
   // ===== LISTEN FOR SYSTEM THEME CHANGES =====
