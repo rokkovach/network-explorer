@@ -1,11 +1,13 @@
 {
   "manifest_version": 3,
   "name": "Network Explorer",
-  "version": "1.1.0",
-  "description": "Inspect network requests, view JSON responses, filter, search, and export.",
+  "version": "2.0.0",
+  "description": "Inspect network requests, view JSON responses, filter with regex, export cURL masked, and manage per-site capture rules.",
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "sidePanel",
+    "storage"
   ],
   "host_permissions": [
     "<all_urls>"
@@ -24,7 +26,6 @@
     }
   ],
   "action": {
-    "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
@@ -33,6 +34,9 @@
   },
   "background": {
     "service_worker": "background.js"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
   },
   "icons": {
     "16": "icons/icon16.png",

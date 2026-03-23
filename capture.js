@@ -192,7 +192,7 @@
     return origSend.apply(this, arguments);
   };
 
-  // ===== CONTROL (called from popup via chrome.scripting.executeScript) =====
+  // ===== CONTROL (called from sidepanel via chrome.scripting.executeScript) =====
   window.__neReset = function() {
     nextId = 1;
     capturing = true;
