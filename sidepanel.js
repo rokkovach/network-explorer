@@ -178,36 +178,19 @@ function showToast(msg) {
   // ===== ADVANCED FILTERS ACTIONS =====
   document.getElementById('btn-add-filter-rule').addEventListener('click', function() {
     Filters.addRule();
-    // Open the panel if not already open
-    if (!advFiltersOpen) {
-      advFiltersOpen = true;
-      document.getElementById('advanced-filters-body').classList.add('open');
-      document.getElementById('adv-chevron').classList.add('open');
-    }
   });
 
-  document.getElementById('btn-import-filters').addEventListener('click', function() {
-    document.getElementById('import-filters-input').click();
+  document.getElementById('filter-preset-select').addEventListener('change', function() {
+    Filters._onPresetChange();
   });
 
-  document.getElementById('import-filters-input').addEventListener('change', async function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
-    try {
-      const count = await Filters.importFilters(file);
-      showToast(`Imported ${count} filter rule(s)`);
-      RequestList.render();
-    } catch(err) {
-      showToast('Import failed: ' + err.message);
-    }
-    e.target.value = '';
+  document.getElementById('btn-save-preset').addEventListener('click', function() {
+    Filters._saveAsPreset();
   });
 
-  document.getElementById('btn-export-filters').addEventListener('click', function() {
-    Filters.exportFilters();
-    showToast('Filters exported');
+  document.getElementById('btn-delete-preset').addEventListener('click', function() {
+    Filters._deletePreset();
   });
-
   // ===== KEYBOARD SHORTCUTS =====
   document.addEventListener('keydown', function(e) {
     // Don't capture shortcuts when typing in inputs

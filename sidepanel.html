@@ -953,7 +953,7 @@
           <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
             <path d="M1 3h12M1 7h8M1 11h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
-          Define Filters
+          Custom Filters
           <span id="active-filter-count" style="color:var(--accent);font-weight:700;display:none;">(0)</span>
         </span>
         <span class="chevron" id="adv-chevron">&#9654;</span>
@@ -962,10 +962,12 @@
         <div id="filter-rules"></div>
         <div class="filter-actions">
           <button class="btn" id="btn-add-filter-rule">+ Add Rule</button>
-          <button class="btn" id="btn-import-filters">Import Filters</button>
-          <button class="btn" id="btn-export-filters">Export Filters</button>
+          <select id="filter-preset-select" title="Load a saved filter preset">
+            <option value="">Load Preset...</option>
+          </select>
+          <button class="btn" id="btn-save-preset">Save as Preset</button>
+          <button class="btn" id="btn-delete-preset" style="display:none;">Delete Preset</button>
         </div>
-        <input type="file" id="import-filters-input" class="hidden-input" accept=".json">
       </div>
     </div>
 
@@ -1096,6 +1098,17 @@
       <p style="font-size:10px;color:var(--text-muted);margin-bottom:8px;">Always allow or block capture on specific domains (root hostname without www).</p>
       <div id="site-rules-list"></div>
       <button class="btn" id="btn-add-site-rule" style="margin-top:6px;">+ Add Site Rule</button>
+    </div>
+
+    <!-- Filters Import/Export -->
+    <div class="settings-section">
+      <h3>Filters</h3>
+      <p style="font-size:10px;color:var(--text-muted);margin-bottom:8px;">Import or export custom filter rules as JSON.</p>
+      <div class="profile-actions">
+        <button class="btn" id="btn-export-filters">Export Filters</button>
+        <button class="btn btn-primary" id="btn-import-filters">Import Filters</button>
+      </div>
+      <input type="file" id="import-filters-input" class="hidden-input" accept=".json">
     </div>
 
     <!-- Profile Import/Export -->
