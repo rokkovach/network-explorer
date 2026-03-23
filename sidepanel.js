@@ -294,6 +294,63 @@ function showToast(msg) {
     if (isResizing) { isResizing = false; document.body.style.cursor = ''; document.body.style.userSelect = ''; }
   });
 
+  // ===== LISTEN FOR TAB CHANGES =====
+  chrome.tabs.onActivated.addListener(function(activeInfo) {
+    var oldTabId = window.__myTabId;
+    var newTabId = activeInfo.tabId;
+    if (newTabId === oldTabId) return;
+
+    // Save current tab's rules to per-tab store
+    window.__perTabRules = window.__perTabRules || {};
+    if (oldTabId) {
+      window.__perTabRules[oldTabId] = Filters._rules.slice();
+    }
+
+    // Switch to new tab
+    window.__myTabId = newTabId;
+
+    // Restore rules for the new tab
+    Filters._rules = (window.__perTabRules[newTabId] || []).slice();
+    Filters._renderRules();
+
+    // Reset request data and load for new tab
+    window.__requests = [];
+    window.__requestMap = {};
+    window.__nextId = 1;
+
+    loadStoredRequests(newTabId);
+    RequestList.deselect();
+    RequestList.render();
+    setStatus('active', 'Listening');
+
+    // Re-check injection status for new tab
+    if (Settings.get('enabled')) {
+      try {
+        chrome.scripting.executeScript({
+          target: { tabId: newTabId },
+          world: 'MAIN',
+          func: function() { return !!(window.__nePatched); }
+        }).then(function(results) {
+          if (results && results[0] && results[0].result) {
+            setStatus('active', 'Listening');
+          } else {
+            setStatus('paused', 'Not injected');
+          }
+        }).catch(function() {
+          setStatus('paused', 'Cannot access');
+        });
+      } catch(e) {
+        setStatus('paused', 'Cannot access');
+      }
+    }
+  });
+
+  chrome.tabs.onRemoved.addListener(function(tabId) {
+    if (window.__perTabRules) {
+      delete window.__perTabRules[tabId];
+    }
+  });
+
   // ===== LISTEN FOR SYSTEM THEME CHANGES =====
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
     if (Settings.get('theme') === 'system') Settings.applyTheme();
